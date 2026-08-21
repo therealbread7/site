@@ -56,6 +56,7 @@ function buildRealGifts() {
 }
 // Точка подключения источника. Прод: fetch к своему прокси -> GiftAsset (см. предыдущую версию).
 const PROXY = "https://proxy-production-9885.up.railway.app";
+const FUNPAY = "https://funpay.com/users/4175976/";
 async function getGifts() {
   try {
     const r = await fetch(PROXY + "/api/gifts");
@@ -217,7 +218,7 @@ function MultiSelect({ options, selected, onChange, searchable }) {
 function FilterPanel({ f, set, opts, sfx }) {
   return (
     <div>
-      <Section title="Номер #" defaultOpen={false}>
+      <Section title="🔢 Номер" defaultOpen={false}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input type="number" placeholder="от" value={f.nmin} onChange={(e) => set({ ...f, nmin: e.target.value })}
             style={{ width: "50%", background: "#101219", border: "1px solid #262A38", borderRadius: 9, padding: "8px 10px", color: "#fff", fontSize: 13, outline: "none" }} />
@@ -226,16 +227,16 @@ function FilterPanel({ f, set, opts, sfx }) {
             style={{ width: "50%", background: "#101219", border: "1px solid #262A38", borderRadius: 9, padding: "8px 10px", color: "#fff", fontSize: 13, outline: "none" }} />
         </div>
       </Section>
-      <Section title="Коллекция" count={f.collections.size || null}>
+      <Section title="🎁 Коллекция" count={f.collections.size || null}>
         <MultiSelect options={opts.collections} selected={f.collections} onChange={(s) => set({ ...f, collections: s })} />
       </Section>
-      <Section title="Модель" count={f.models.size || null} defaultOpen={false}>
+      <Section title="🎨 Модель" count={f.models.size || null} defaultOpen={false}>
         <MultiSelect options={opts.models} selected={f.models} onChange={(s) => set({ ...f, models: s })} searchable />
       </Section>
-      <Section title="Фон" count={f.backdrops.size || null} defaultOpen={false}>
+      <Section title="🖼️ Фон" count={f.backdrops.size || null} defaultOpen={false}>
         <MultiSelect options={opts.backdrops} selected={f.backdrops} onChange={(s) => set({ ...f, backdrops: s })} searchable />
       </Section>
-      <Section title="Символ" count={f.symbols.size || null} defaultOpen={false}>
+      <Section title="✨ Символ" count={f.symbols.size || null} defaultOpen={false}>
         <MultiSelect options={opts.symbols} selected={f.symbols} onChange={(s) => set({ ...f, symbols: s })} searchable />
       </Section>
     </div>
@@ -243,7 +244,7 @@ function FilterPanel({ f, set, opts, sfx }) {
 }
 
 // ---------- КАРТОЧКА ----------
-function Card({ gift, onOpen, fav, onFav, sfx, idx, view }) {
+function Card({ gift, onOpen, fav, onFav, sfx, idx, view, onBuy }) {
   const tier = rarityTier(gift.total_rarity);
   const [hover, setHover] = useState(false);
   const anim = { animation: `gvIn .5s ${Math.min(idx, 11) * 0.03}s both cubic-bezier(.2,.8,.2,1)` };
@@ -260,6 +261,8 @@ function Card({ gift, onOpen, fav, onFav, sfx, idx, view }) {
           </div>
           <div style={{ fontSize: 12, color: "#8A90A2", marginTop: 2 }}>{gift.model} · {gift.backdrop} · {gift.symbol}</div>
         </div>
+        <button onClick={(e) => { e.stopPropagation(); onBuy(gift, e); }}
+          style={{ flexShrink: 0, border: "none", cursor: "pointer", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, background: "linear-gradient(90deg,#4ADE80,#22c55e)", color: "#04240f", fontFamily: "'Space Grotesk', sans-serif" }}>Купить</button>
         <button onClick={(e) => { e.stopPropagation(); sfx.tap(); onFav(gift.name); }} aria-label="В избранное"
           style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 999, border: "none", cursor: "pointer", fontSize: 15, background: fav ? "#F5C563" : "#171A23", color: fav ? "#0A0B0F" : "#fff" }}>{fav ? "★" : "☆"}</button>
       </div>
@@ -274,17 +277,31 @@ function Card({ gift, onOpen, fav, onFav, sfx, idx, view }) {
         <button onClick={(e) => { e.stopPropagation(); sfx.tap(); onFav(gift.name); }} aria-label="В избранное"
           style={{ position: "absolute", top: 16, right: 16, width: 32, height: 32, borderRadius: 999, border: "none", cursor: "pointer", fontSize: 15, transition: "transform .15s", transform: fav ? "scale(1.1)" : "scale(1)", background: fav ? "#F5C563" : "rgba(10,11,15,.55)", color: fav ? "#0A0B0F" : "#fff", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}>{fav ? "★" : "☆"}</button>
       </div>
-      <div style={{ padding: "8px 16px 16px" }}>
-        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15, color: "#fff" }}>{gift.collection}</div>
-        <div style={{ fontSize: 12, color: "#8A90A2", marginTop: 2 }}>{gift.model} · {gift.backdrop}</div>
-        <div style={{ fontSize: 12, color: "#6B7280", marginTop: 8 }}>{gift.symbol}</div>
+      <div style={{ padding: "10px 14px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff" }}>{gift.collection}</span>
+          <span style={{ fontSize: 11, color: "#6B7280" }}>#{gift.number}</span>
+        </div>
+        <div style={{ fontSize: 12, color: "#8A90A2", marginTop: 6, lineHeight: 1.5 }}>
+          <div>Модель: <span style={{ color: "#cfd4de" }}>{gift.model}</span></div>
+          <div>Фон: <span style={{ color: "#cfd4de" }}>{gift.backdrop}</span></div>
+        </div>
+        {gift.price_ton > 0 && (
+          <div style={{ marginTop: 8, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: "#6FD3E8" }}>
+            от {gift.price_ton.toFixed(2)} TON
+          </div>
+        )}
+        <button onClick={(e) => { e.stopPropagation(); onBuy(gift, e); }}
+          style={{ width: "100%", marginTop: 12, border: "none", cursor: "pointer", borderRadius: 12, padding: "11px 12px",
+            fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14,
+            background: "linear-gradient(90deg,#4ADE80,#22c55e)", color: "#04240f" }}>🛒 Купить</button>
       </div>
     </div>
   );
 }
 
 // ---------- МОДАЛКА (с навигацией ←/→) ----------
-function Detail({ gift, onClose, fav, onFav, sfx, onNav, pos }) {
+function Detail({ gift, onClose, fav, onFav, sfx, onNav, pos, boom }) {
   useEffect(() => {
     const h = (e) => {
       if (e.key === "Escape") onClose();
@@ -329,7 +346,7 @@ function Detail({ gift, onClose, fav, onFav, sfx, onNav, pos }) {
               <CopyRow label="Ссылка" value={gift.nft_url} sfx={sfx.copy} />
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <PressButton primary sfx={sfx.buy} style={{ flex: 1, padding: "14px 16px", background: "linear-gradient(90deg,#6FD3E8,#4aa8d8)", color: "#052430", boxShadow: "0 10px 30px -10px rgba(111,211,232,.6)" }}>Оплатить</PressButton>
+              <PressButton primary sfx={() => {}} onClick={() => { boom(innerWidth / 2, innerHeight * 0.55); setTimeout(() => window.open(FUNPAY, "_blank"), 650); }} style={{ flex: 1, padding: "17px 16px", fontSize: 17, background: "linear-gradient(90deg,#4ADE80,#22c55e)", color: "#04240f", boxShadow: "0 10px 30px -10px rgba(74,222,128,.6)" }}>🛒 Купить на FunPay</PressButton>
               <PressButton sfx={sfx.tap} onClick={() => onFav(gift.name)} style={{ width: 54, padding: "14px 0", background: fav ? "#F5C563" : "#191C26", color: fav ? "#0A0B0F" : "#fff", fontSize: 18 }}>{fav ? "★" : "☆"}</PressButton>
             </div>
             <div style={{ marginTop: 16, display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: "#7a808f" }}>
@@ -379,6 +396,94 @@ function DotGrid() {
   return <canvas ref={ref} aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
 }
 
+// ---------- ФЕЙЕРВЕРК + КОНФЕТТИ (майнкрафт-стайл, зелёный) ----------
+function useFireworks(soundOn) {
+  const cvRef = useRef(null);
+  const partsRef = useRef([]);
+  const rafRef = useRef(0);
+
+  useEffect(() => {
+    const cv = cvRef.current; if (!cv) return;
+    const ctx = cv.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px"; };
+    resize(); addEventListener("resize", resize);
+    const tick = () => {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const ps = partsRef.current;
+      for (let i = ps.length - 1; i >= 0; i--) {
+        const p = ps[i];
+        p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.vy *= 0.99; p.life -= 1;
+        if (p.life <= 0) { ps.splice(i, 1); continue; }
+        const a = Math.max(0, p.life / p.max);
+        ctx.globalAlpha = a;
+        if (p.square) { // конфетти-фантики
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); p.rot += p.spin;
+          ctx.fillStyle = p.color; ctx.fillRect(-p.s * dpr, -p.s * dpr, p.s * 2 * dpr, p.s * 2 * dpr); ctx.restore();
+        } else { // искры майнкрафт (квадратные пиксели)
+          ctx.fillStyle = p.color; const r = p.s * dpr; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => { cancelAnimationFrame(rafRef.current); removeEventListener("resize", resize); };
+  }, []);
+
+  const boom = (cx, cy) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const X = (cx ?? innerWidth / 2) * dpr, Y = (cy ?? innerHeight / 2) * dpr;
+    const greens = ["#4ADE80", "#22c55e", "#86efac", "#16a34a", "#bbf7d0", "#eaffea"];
+    const conf = ["#4ADE80", "#F5C563", "#6FD3E8", "#ff7ab8", "#ffffff"];
+    const ps = partsRef.current;
+    // майнкрафт-вспышка: два кольца пиксельных искр
+    for (let ring = 0; ring < 2; ring++) {
+      const n = 46, sp = (ring ? 5.5 : 8) * dpr;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.1;
+        const v = sp * (0.6 + Math.random() * 0.6);
+        ps.push({ x: X, y: Y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 0.06 * dpr, s: (1.4 + Math.random()) , life: 55 + Math.random() * 25, max: 80, color: greens[(Math.random() * greens.length) | 0], square: false, rot: 0, spin: 0 });
+      }
+    }
+    // конфетти из хлопушек: летит вверх широким веером
+    for (let i = 0; i < 60; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+      const v = (7 + Math.random() * 7) * dpr;
+      ps.push({ x: X, y: Y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 0.16 * dpr, s: 2.2 + Math.random() * 2, life: 90 + Math.random() * 50, max: 140, color: conf[(Math.random() * conf.length) | 0], square: true, rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.4 });
+    }
+    // звук взрыва (шум + низкий бум)
+    if (soundOn) playBoom();
+  };
+  return { cvRef, boom };
+}
+
+function playBoom() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = window.__gvAC || (window.__gvAC = new AC());
+    if (c.state === "suspended") c.resume();
+    const t = c.currentTime;
+    // низкий "бум"
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.4);
+    g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.5);
+    // шум-хлопок
+    const dur = 0.35, buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const ng = c.createGain(); ng.gain.setValueAtTime(0.25, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 900;
+    src.connect(hp); hp.connect(ng); ng.connect(c.destination); src.start(t); src.stop(t + dur);
+    // "свист" запуска
+    const w = c.createOscillator(), wg = c.createGain();
+    w.type = "triangle"; w.frequency.setValueAtTime(400, t); w.frequency.exponentialRampToValueAtTime(1400, t + 0.18);
+    wg.gain.setValueAtTime(0.05, t); wg.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    w.connect(wg); wg.connect(c.destination); w.start(t); w.stop(t + 0.22);
+  } catch {}
+}
+
 // ---------- ПРИЛОЖЕНИЕ ----------
 const EMPTY_F = () => ({ collections: new Set(), models: new Set(), backdrops: new Set(), symbols: new Set(), tier: "all", pmin: "", pmax: "", nmin: "", nmax: "" });
 
@@ -395,8 +500,11 @@ export default function GiftVault() {
   const [tab, setTab] = useState("catalog");
   const [view, setView] = useState("grid");
   const sfx = useSound(sound);
+  const { cvRef, boom } = useFireworks(sound);
+  const [reviews, setReviews] = useState(null);
 
   useEffect(() => { getGifts().then(setGifts); }, []);
+  useEffect(() => { fetch(PROXY + "/api/reviews").then(r => r.json()).then(setReviews).catch(() => {}); }, []);
   const toggleFav = (name) => setFavs((v) => ({ ...v, [name]: !v[name] }));
   const favCount = Object.values(favs).filter(Boolean).length;
 
@@ -441,15 +549,21 @@ export default function GiftVault() {
   const clearAll = () => { sfx.tap(); setF(EMPTY_F()); setVisible(18); };
   const chips = [...[...f.collections].map((v) => ["collections", v]), ...[...f.models].map((v) => ["models", v]), ...[...f.backdrops].map((v) => ["backdrops", v]), ...[...f.symbols].map((v) => ["symbols", v])];
   const removeChip = (grp, v) => { const set = new Set(f[grp]); set.delete(v); setF({ ...f, [grp]: set }); };
+  const buyGift = (gift, e) => {
+    const r = e?.currentTarget?.getBoundingClientRect?.();
+    boom(r ? r.left + r.width / 2 : innerWidth / 2, r ? r.top : innerHeight / 2);
+    setTimeout(() => window.open(FUNPAY, "_blank"), 650);
+  };
   const sortOptions = [["recent", "Недавно добавленные"], ["number_asc", "Номер ↑"], ["number_desc", "Номер ↓"]];
   const tabs = [["catalog", "Каталог"], ["favs", `Избранное${favCount ? " · " + favCount : ""}`]];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#060708", color: "#fff", position: "relative", fontFamily: "Inter, -apple-system, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#060708", color: "#fff", position: "relative", fontFamily: "Sora, -apple-system, sans-serif" }}>
       <DotGrid />
+      <canvas ref={cvRef} aria-hidden style={{ position: "fixed", inset: 0, zIndex: 90, pointerEvents: "none" }} />
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
-        *{box-sizing:border-box;} button{font-family:inherit;transition:transform .2s cubic-bezier(.2,.8,.2,1),background .22s ease,color .2s ease,border-color .22s ease,box-shadow .25s ease,filter .2s ease;}
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+        html,body{overflow-x:hidden;overflow-y:auto;} *{box-sizing:border-box;} button{font-family:inherit;transition:transform .2s cubic-bezier(.2,.8,.2,1),background .22s ease,color .2s ease,border-color .22s ease,box-shadow .25s ease,filter .2s ease;}
         input,select{transition:border-color .2s ease,box-shadow .25s ease,background .2s ease;}
         input:focus,select:focus{border-color:#6FD3E8;box-shadow:0 0 0 3px rgba(111,211,232,.15);}
         label{transition:background .18s ease;} label:hover{background:#171a23;}
@@ -476,21 +590,49 @@ export default function GiftVault() {
 
       <header style={{ borderBottom: "1px solid #191C26", padding: "0 20px", position: "sticky", top: 0, zIndex: 40, background: "#08090C" }}>
         <div style={{ maxWidth: 1320, margin: "0 auto", padding: "12px 0", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19 }}>GIFT<span style={{ color: "#6FD3E8" }}>VAULT</span></div>
-          <input value={q} onChange={(e) => { setQ(e.target.value); setVisible(18); }} placeholder="Поиск подарка, модели, #номера…"
-            style={{ flex: 1, maxWidth: 420, background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 12, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none" }} />
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={() => setSound((x) => !x)} style={{ border: "1px solid #1B1E27", background: sound ? "rgba(111,211,232,.12)" : "transparent", color: sound ? "#6FD3E8" : "#7a808f", borderRadius: 999, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}>{sound ? "🔊" : "🔇"}</button>
-          </div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19 }}>THE<span style={{ color: "#6FD3E8" }}>HELLSBREAD</span></div>
+
         </div>
         {/* TABS */}
         <div style={{ maxWidth: 1320, margin: "0 auto", display: "flex", gap: 6, paddingBottom: 2 }}>
           {tabs.map(([key, label]) => (
             <button key={key} onClick={() => { sfx.tap(); setTab(key); setVisible(18); }}
-              style={{ border: "none", background: "none", cursor: "pointer", padding: "8px 4px", marginRight: 12, fontSize: 14, fontWeight: 600, color: tab === key ? "#fff" : "#6B7280", borderBottom: `2px solid ${tab === key ? "#6FD3E8" : "transparent"}`, borderRadius: 0, fontFamily: "'Space Grotesk', sans-serif" }}>{label}</button>
+              style={{ border: "none", background: "none", cursor: "pointer", padding: "12px 4px", marginRight: 18, fontSize: 16, fontWeight: 700, color: tab === key ? "#fff" : "#6B7280", borderBottom: `2px solid ${tab === key ? "#6FD3E8" : "transparent"}`, borderRadius: 0, fontFamily: "'Space Grotesk', sans-serif" }}>{label}</button>
           ))}
         </div>
       </header>
+
+      {/* РЕЙТИНГ / ОТЗЫВЫ (FunPay) */}
+      <div style={{ maxWidth: 1320, margin: "18px auto 0", padding: "0 20px", position: "relative", zIndex: 1 }}>
+        <div style={{ background: "linear-gradient(90deg,#12151d,#171a23)", border: "1px solid #1B1E27", borderRadius: 18, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ width: 60, height: 60, borderRadius: 999, background: "linear-gradient(135deg,#4ADE80,#22c55e)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>🍞</div>
+          <div>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 22 }}>thehellsbread</div>
+            <div style={{ fontSize: 16, color: "#9aa0ad", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#FFC93C", fontSize: 20, letterSpacing: 1, textShadow: "0 0 12px rgba(255,201,60,.5)" }}>★★★★★</span>
+              <b style={{ color: "#fff", fontSize: 17 }}>{reviews?.rating || "5.0"}</b>
+              <span>· {reviews?.count ? `${reviews.count} отзывов` : "отзывы на FunPay"}</span>
+            </div>
+          </div>
+          <a href={FUNPAY} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", textDecoration: "none" }}>
+            <span style={{ display: "inline-block", border: "1px solid #2C3140", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>Профиль на FunPay →</span>
+          </a>
+        </div>
+        <div style={{ marginTop: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#4ADE80", background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.3)", borderRadius: 999, padding: "5px 12px" }}>✓ ЭТО РЕАЛЬНЫЕ ОТЗЫВЫ</span>
+          <a href={FUNPAY} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#6FD3E8", textDecoration: "none" }}>проверь на FunPay →</a>
+        </div>
+        {reviews?.reviews?.length > 0 && (
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginTop: 4 }}>
+            {reviews.reviews.map((t, i) => (
+              <div key={i} style={{ minWidth: 260, maxWidth: 320, flexShrink: 0, background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 16, padding: "16px 18px", fontSize: 15, color: "#C7CCd6" }}>
+                <span style={{ color: "#FFC93C", fontSize: 18, letterSpacing: 1 }}>★★★★★</span>
+                <div style={{ marginTop: 8, lineHeight: 1.55 }}>{t}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="gv-layout" style={{ paddingTop: 22, paddingBottom: 80, position: "relative", zIndex: 1 }}>
         <aside className="gv-side">
@@ -544,11 +686,11 @@ export default function GiftVault() {
           ) : (
             <>
               <div className={view === "list" ? "gv-list" : "gv-grid"}>
-                {filtered.slice(0, visible).map((g, i) => <Card key={g.name} gift={g} idx={i} view={view} onOpen={setOpen} fav={!!favs[g.name]} onFav={toggleFav} sfx={sfx} />)}
+                {filtered.slice(0, visible).map((g, i) => <Card key={g.name} gift={g} idx={i} view={view} onOpen={setOpen} fav={!!favs[g.name]} onFav={toggleFav} sfx={sfx} onBuy={buyGift} />)}
               </div>
               {visible < filtered.length && (
                 <div style={{ textAlign: "center", marginTop: 28 }}>
-                  <PressButton sfx={sfx.tap} onClick={() => setVisible((v) => v + 18)} style={{ background: "transparent", border: "1px solid #2C3140", color: "#fff", padding: "12px 28px", fontWeight: 600 }}>Показать ещё</PressButton>
+                  <PressButton sfx={sfx.tap} onClick={() => setVisible((v) => v + 18)} style={{ background: "transparent", border: "1px solid #2C3140", color: "#fff", padding: "15px 40px", fontWeight: 700, fontSize: 15 }}>Показать ещё</PressButton>
                 </div>
               )}
             </>
@@ -579,7 +721,13 @@ export default function GiftVault() {
         </div>
       </footer>
 
-      <Detail gift={open} onClose={() => setOpen(null)} fav={open ? !!favs[open.name] : false} onFav={toggleFav} sfx={sfx} onNav={navGift} pos={openPos} />
+      <button onClick={() => { sfx.tap(); setSound((x) => !x); }} title="Звук"
+        style={{ position: "fixed", right: 20, bottom: 20, zIndex: 55, width: 46, height: 46, borderRadius: 999,
+          border: "1px solid #1B1E27", background: sound ? "rgba(111,211,232,.15)" : "#0F1219",
+          color: sound ? "#6FD3E8" : "#7a808f", cursor: "pointer", fontSize: 18, boxShadow: "0 8px 24px -8px rgba(0,0,0,.6)" }}>
+        {sound ? "🔊" : "🔇"}
+      </button>
+      <Detail gift={open} onClose={() => setOpen(null)} fav={open ? !!favs[open.name] : false} onFav={toggleFav} sfx={sfx} onNav={navGift} pos={openPos} boom={boom} />
     </div>
   );
 }
