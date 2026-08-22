@@ -504,12 +504,19 @@ export default function GiftVault() {
   useEffect(() => { getGifts().then(setGifts); }, []);
   useEffect(() => { fetch(PROXY + "/api/reviews").then(r => r.json()).then(setReviews).catch(() => {}); }, []);
   const [changes, setChanges] = useState([]);
-  useEffect(() => {
-    const load = () => fetch(PROXY + "/api/changes").then(r => r.json()).then(setChanges).catch(() => {});
-    load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+  const [changesLoading, setChangesLoading] = useState(false);
+  const loadChanges = useCallback(() => {
+    setChangesLoading(true);
+    return fetch(PROXY + "/api/changes").then(r => r.json())
+      .then((data) => setChanges((data || []).filter((c) => c.type === "gone")))
+      .catch(() => {})
+      .finally(() => setChangesLoading(false));
   }, []);
+  useEffect(() => {
+    loadChanges();
+    const id = setInterval(loadChanges, 5000);
+    return () => clearInterval(id);
+  }, [loadChanges]);
   const toggleFav = (name) => setFavs((v) => ({ ...v, [name]: !v[name] }));
   const favCount = Object.values(favs).filter(Boolean).length;
 
@@ -589,7 +596,7 @@ export default function GiftVault() {
         @keyframes gvFade{from{opacity:0;}to{opacity:1;}} @keyframes gvRise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
         @keyframes gvFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
         @keyframes gvSpark{to{transform:translate(var(--tx),var(--ty)) scale(.2);opacity:0;}}
-        @keyframes gvSlide{from{transform:translateX(-100%);}to{transform:none;}}
+        @keyframes gvSlide{from{transform:translateX(-100%);}to{transform:none;}} @keyframes gvSpin{to{transform:rotate(360deg);}}
         @media(prefers-reduced-motion:reduce){*{animation:none!important;}}
       `}</style>
 
@@ -685,28 +692,43 @@ export default function GiftVault() {
           )}
 
           {tab === "gone" ? (
-            changes.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "70px 0", color: "#6B7280" }}>
-                Пока изменений нет. Список обновится, как только бот перешлёт подарок.
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 13, color: "#6B7280" }}>Ушедших подарков: <b style={{ color: "#fff" }}>{changes.length}</b></span>
+                <button onClick={loadChanges} disabled={changesLoading} style={{
+                  marginLeft: "auto", display: "flex", alignItems: "center", gap: 8,
+                  border: "1.5px solid #ef4444", background: "rgba(239,68,68,.1)", color: "#ef4444",
+                  borderRadius: 12, padding: "9px 16px", cursor: changesLoading ? "default" : "pointer",
+                  fontWeight: 700, fontSize: 13, fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <span style={{ display: "inline-block", animation: changesLoading ? "gvSpin 0.7s linear infinite" : "none" }}>🔄</span>
+                  Обновить
+                </button>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {changes.map((c, i) => (
-                  <a key={i} href={c.link} target="_blank" rel="noreferrer" style={{
-                    display: "flex", alignItems: "center", gap: 14, textDecoration: "none",
-                    background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 14, padding: "14px 16px" }}>
-                    <span style={{ fontSize: 20 }}>{c.type === "gone" ? "➖" : "➕"}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: "#fff", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {c.type === "gone" ? "Ушёл" : "Пришёл"}: {c.name}
+              {changes.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "70px 0", color: "#6B7280" }}>
+                  Пока никто не переслал подарок. Список обновится сам.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {changes.map((c, i) => (
+                    <a key={i} href={c.link} target="_blank" rel="noreferrer" style={{
+                      display: "flex", alignItems: "center", gap: 14, textDecoration: "none",
+                      background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 14, padding: "12px 16px" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#171A23" }}>
+                        {c.img ? <img src={c.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ display: "grid", placeItems: "center", height: "100%", fontSize: 18 }}>🎁</div>}
                       </div>
-                      <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{c.collection} · {c.time}</div>
-                    </div>
-                    <span style={{ color: "#6FD3E8", fontSize: 13 }}>{c.link.replace("https://", "")} →</span>
-                  </a>
-                ))}
-              </div>
-            )
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: "#fff", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>
+                          Ушёл: {c.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{c.collection} · {c.time}</div>
+                      </div>
+                      <span style={{ color: "#6FD3E8", fontSize: 13 }}>{c.link.replace("https://", "")} →</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "70px 0", color: "#6B7280" }}>
               {tab === "favs" ? "В избранном пусто. Жми ★ на подарках." : "Ничего не нашлось. Ослабь фильтры."}
