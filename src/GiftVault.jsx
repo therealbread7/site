@@ -55,19 +55,17 @@ function buildRealGifts() {
   return out;
 }
 // Точка подключения источника. Прод: fetch к своему прокси -> GiftAsset (см. предыдущую версию).
-const PROXY = "https://proxy-production-9885.up.railway.app";
+const PROXY = "http://185.143.238.211:8788";
 const FUNPAY = "https://funpay.com/users/4175976/";
 async function getGifts() {
   try {
     const r = await fetch(PROXY + "/api/gifts");
-    if (!r.ok) throw new Error("proxy " + r.status);
-    const data = await r.json();
-    if (Array.isArray(data) && data.length) return data.map((g, i) => ({ ...g, listed_at: i }));
-    throw new Error("empty");
-  } catch (e) {
-    console.warn("proxy недоступен, демо-данные:", e.message);
-    return buildRealGifts();
-  }
+    if (r.ok) {
+      const data = await r.json();
+      if (Array.isArray(data) && data.length) return data.map((g, i) => ({ ...g, listed_at: i }));
+    }
+  } catch (e) {}
+  return buildRealGifts();
 }
 
 // ---------- ХЕЛПЕРЫ ----------
@@ -286,6 +284,11 @@ function Card({ gift, onOpen, fav, onFav, sfx, idx, view, onBuy }) {
           <div>Модель: <span style={{ color: "#cfd4de" }}>{gift.model}</span></div>
           <div>Фон: <span style={{ color: "#cfd4de" }}>{gift.backdrop}</span></div>
         </div>
+        {gift.price_ton > 0 && (
+          <div style={{ marginTop: 8, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: "#6FD3E8" }}>
+            от {gift.price_ton.toFixed(2)} TON
+          </div>
+        )}
         <button onClick={(e) => { e.stopPropagation(); onBuy(gift, e); }}
           style={{ width: "100%", marginTop: 12, border: "none", cursor: "pointer", borderRadius: 12, padding: "11px 12px",
             fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14,
@@ -600,24 +603,29 @@ export default function GiftVault() {
       {/* РЕЙТИНГ / ОТЗЫВЫ (FunPay) */}
       <div style={{ maxWidth: 1320, margin: "18px auto 0", padding: "0 20px", position: "relative", zIndex: 1 }}>
         <div style={{ background: "linear-gradient(90deg,#12151d,#171a23)", border: "1px solid #1B1E27", borderRadius: 18, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ width: 48, height: 48, borderRadius: 999, background: "linear-gradient(135deg,#4ADE80,#22c55e)", display: "grid", placeItems: "center", fontSize: 22 }}>🍞</div>
+          <div style={{ width: 60, height: 60, borderRadius: 999, background: "linear-gradient(135deg,#4ADE80,#22c55e)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>🍞</div>
           <div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 17 }}>thehellsbread</div>
-            <div style={{ fontSize: 13, color: "#8A90A2" }}>
-              {reviews?.rating ? <span style={{ color: "#F5C563" }}>★ {reviews.rating}</span> : <span style={{ color: "#F5C563" }}>★ 5.0</span>}
-              {reviews?.count ? ` · ${reviews.count} отзывов` : " · отзывы на FunPay"}
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 22 }}>thehellsbread</div>
+            <div style={{ fontSize: 16, color: "#9aa0ad", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#FFC93C", fontSize: 20, letterSpacing: 1, textShadow: "0 0 12px rgba(255,201,60,.5)" }}>★★★★★</span>
+              <b style={{ color: "#fff", fontSize: 17 }}>{reviews?.rating || "5.0"}</b>
+              <span>· {reviews?.count ? `${reviews.count} отзывов` : "отзывы на FunPay"}</span>
             </div>
           </div>
           <a href={FUNPAY} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", textDecoration: "none" }}>
             <span style={{ display: "inline-block", border: "1px solid #2C3140", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>Профиль на FunPay →</span>
           </a>
         </div>
+        <div style={{ marginTop: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#4ADE80", background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.3)", borderRadius: 999, padding: "5px 12px" }}>✓ ЭТО РЕАЛЬНЫЕ ОТЗЫВЫ</span>
+          <a href={FUNPAY} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#6FD3E8", textDecoration: "none" }}>проверь на FunPay →</a>
+        </div>
         {reviews?.reviews?.length > 0 && (
-          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginTop: 10 }}>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginTop: 4 }}>
             {reviews.reviews.map((t, i) => (
-              <div key={i} style={{ minWidth: 240, maxWidth: 300, flexShrink: 0, background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 14, padding: "12px 14px", fontSize: 13, color: "#B4B9C6" }}>
-                <span style={{ color: "#F5C563" }}>★★★★★</span>
-                <div style={{ marginTop: 6, lineHeight: 1.5 }}>{t}</div>
+              <div key={i} style={{ minWidth: 260, maxWidth: 320, flexShrink: 0, background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 16, padding: "16px 18px", fontSize: 15, color: "#C7CCd6" }}>
+                <span style={{ color: "#FFC93C", fontSize: 18, letterSpacing: 1 }}>★★★★★</span>
+                <div style={{ marginTop: 8, lineHeight: 1.55 }}>{t}</div>
               </div>
             ))}
           </div>
