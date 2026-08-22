@@ -55,7 +55,7 @@ function buildRealGifts() {
   return out;
 }
 // Точка подключения источника. Прод: fetch к своему прокси -> GiftAsset (см. предыдущую версию).
-const PROXY = "http://185.143.238.211:8788";
+const PROXY = "https://wherever-davidson-pregnancy-allowed.trycloudflare.com";
 const FUNPAY = "https://funpay.com/users/4175976/";
 async function getGifts() {
   try {
