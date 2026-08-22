@@ -503,6 +503,13 @@ export default function GiftVault() {
 
   useEffect(() => { getGifts().then(setGifts); }, []);
   useEffect(() => { fetch(PROXY + "/api/reviews").then(r => r.json()).then(setReviews).catch(() => {}); }, []);
+  const [changes, setChanges] = useState([]);
+  useEffect(() => {
+    const load = () => fetch(PROXY + "/api/changes").then(r => r.json()).then(setChanges).catch(() => {});
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, []);
   const toggleFav = (name) => setFavs((v) => ({ ...v, [name]: !v[name] }));
   const favCount = Object.values(favs).filter(Boolean).length;
 
@@ -553,7 +560,7 @@ export default function GiftVault() {
     setTimeout(() => window.open(FUNPAY, "_blank"), 650);
   };
   const sortOptions = [["recent", "Недавно добавленные"], ["number_asc", "Номер ↑"], ["number_desc", "Номер ↓"]];
-  const tabs = [["catalog", "Каталог"], ["favs", `Избранное${favCount ? " · " + favCount : ""}`]];
+  const tabs = [["catalog", "Каталог"], ["favs", `Избранное${favCount ? " · " + favCount : ""}`], ["gone", "Ушли"]];
 
   return (
     <div style={{ minHeight: "100vh", background: "#060708", color: "#fff", position: "relative", fontFamily: "Sora, -apple-system, sans-serif" }}>
@@ -677,9 +684,32 @@ export default function GiftVault() {
             </div>
           )}
 
-          {filtered.length === 0 ? (
+          {tab === "gone" ? (
+            changes.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "70px 0", color: "#6B7280" }}>
+                Пока изменений нет. Список обновится, как только бот перешлёт подарок.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {changes.map((c, i) => (
+                  <a key={i} href={c.link} target="_blank" rel="noreferrer" style={{
+                    display: "flex", alignItems: "center", gap: 14, textDecoration: "none",
+                    background: "#0F1219", border: "1px solid #1B1E27", borderRadius: 14, padding: "14px 16px" }}>
+                    <span style={{ fontSize: 20 }}>{c.type === "gone" ? "➖" : "➕"}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#fff", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {c.type === "gone" ? "Ушёл" : "Пришёл"}: {c.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{c.collection} · {c.time}</div>
+                    </div>
+                    <span style={{ color: "#6FD3E8", fontSize: 13 }}>{c.link.replace("https://", "")} →</span>
+                  </a>
+                ))}
+              </div>
+            )
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "70px 0", color: "#6B7280" }}>
-              {tab === "favs" ? "В избранном пусто. Жми ★ на подарках." : tab === "deals" ? "Сейчас нет подарков ниже floor." : "Ничего не нашлось. Ослабь фильтры."}
+              {tab === "favs" ? "В избранном пусто. Жми ★ на подарках." : "Ничего не нашлось. Ослабь фильтры."}
             </div>
           ) : (
             <>
